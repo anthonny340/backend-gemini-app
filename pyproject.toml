@@ -1,0 +1,27 @@
+[project]
+name = "backend-gemini-app"
+version = "0.1.0"
+description = "Backend API with FastAPI and Gemini integration"
+authors = [
+    {name = "Anthonny Sacheri",email = "tonysolorzano880@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard] (>=0.136.3,<0.137.0)",
+    "sqlalchemy (>=2.0.50,<3.0.0)",
+    "psycopg (>=3.3.4,<4.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[dependency-groups]
+dev = [
+    "isort (>=8.0.1,<9.0.0)",
+    "black (>=26.5.1,<27.0.0)"
+]
