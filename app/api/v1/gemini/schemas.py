@@ -19,4 +19,9 @@ class BasicPrompt(BaseModel):
 class GeminiResponse(BaseModel):
     success: bool
     content: Optional[str]
-    error: Optional[str]
+
+
+class GeminiStreamChunk(BaseModel):
+    success: bool
+    chunk: Optional[str] = None
+    done: bool = False

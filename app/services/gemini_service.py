@@ -3,10 +3,12 @@
 import os
 from typing import Optional
 
+from fastapi import HTTPException, status
 from google import genai
 from google.genai.types import GenerateContentConfig
-
-from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse
+from google.api_core import exceptions
+from collections.abc import AsyncGenerator
+from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse, GeminiStreamChunk
 
 
 class GeminiService:
@@ -32,12 +34,68 @@ class GeminiService:
             )
 
             if not response.text:
-                return GeminiResponse(success=False, content=None, error="Gemini returned an empty response")
+                return GeminiResponse(success=False, content=None)
 
-            return GeminiResponse(success=True, content=response.text, error=None)
+            return GeminiResponse(success=True, content=response.text)
+        except exceptions.ResourceExhausted:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit / quota excedida")
+
+        except exceptions.InvalidArgument:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Contenido inválido")
+
+        except exceptions.Unauthenticated:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication credentials were not provided")
+
         except Exception as e:
-            return GeminiResponse(
-                success=False,
-                content=None,
-                error=str(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error: {str(e)}"
+            )
+
+    async def generate_content_stream(self, prompt: str, model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
+        try:
+            response = self.client.models.generate_content_stream(
+                model=model,
+                contents=prompt,
+                config=self.config
+            )
+
+            # for chunk in response:
+            #     if chunk.text:
+            #         yield chunk.text
+
+            for chunk in response:
+                text = getattr(chunk, "text", None)
+
+                if text:
+                    yield GeminiStreamChunk(
+                        success=True,
+                        chunk=text,
+                        done=False
+                    )
+
+            yield GeminiStreamChunk(
+                success=True,
+                done=True
+            )
+
+        except exceptions.ResourceExhausted:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit / quota excedida")
+
+        except exceptions.InvalidArgument:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Contenido inválido")
+
+        except exceptions.Unauthenticated:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication credentials were not provided")
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected error: {str(e)}"
             )
