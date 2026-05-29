@@ -63,10 +63,6 @@ class GeminiService:
                 config=self.config
             )
 
-            # for chunk in response:
-            #     if chunk.text:
-            #         yield chunk.text
-
             for chunk in response:
                 text = getattr(chunk, "text", None)
 

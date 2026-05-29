@@ -52,33 +52,31 @@ async def basicPromptStream(
     content: BasicPrompt
 ):
     """
-    Genera una respuesta Stream utilizando el modelo Gemini
-    a partir del prompt enviado por el usuario.
+    Genera una respuesta de Gemini en streaming mediante Server-Sent Events.
+
+    Cada evento emitido posee la siguiente estructura:
+
+        {
+            "success": bool,
+            "chunk": str | null,
+            "done": bool,
+            "error": str | null
+        }
 
     Args:
         content (BasicPrompt):
-            Contiene el prompt que será procesado por Gemini.
+            Prompt enviado por el usuario.
 
     Returns:
-        dict:
-            Respuesta generada por el modelo.
-
-            Ejemplo:
-            {
-                "success": true,
-                "content": "Respuesta generada..."
-            }
-
-    Raises:
-        Exception:
-            Si ocurre un error durante la generación
-            de contenido con Gemini.
+        StreamingResponse:
+            Flujo SSE que transmite los fragmentos generados por Gemini
+            hasta que la respuesta finaliza o se produce un error.
     """
     gemini = GeminiService()
 
     async def event_generator():
         async for chunk in gemini.generate_content_stream(prompt=content.prompt):
-            yield chunk.model_dump_json() + "\n"
-            # yield f"data: {chunk.model_dump_json()}\n\n"
+            # yield chunk.model_dump_json() + "\n"
+            yield f"data:{chunk.model_dump_json()}\n\n"
 
-    return StreamingResponse(content=event_generator(), media_type="text/plain")
+    return StreamingResponse(content=event_generator(), media_type="text/event-stream")
