@@ -1,11 +1,13 @@
 
 
+from io import BytesIO
 import os
 from typing import Optional
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
 from google import genai
 from google.genai.types import GenerateContentConfig
+from PIL import Image
 from google.api_core import exceptions
 from collections.abc import AsyncGenerator
 from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse, GeminiStreamChunk
@@ -55,11 +57,25 @@ class GeminiService:
                 detail=f"Unexpected error: {str(e)}"
             )
 
-    async def generate_content_stream(self, prompt: str, model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
+    async def generate_content_stream(self, prompt: str, files: list[UploadFile] = [], model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
         try:
+            gemini_images = []
+            if files:
+                for uploaded_file in files:
+                    image_bytes = await uploaded_file.read()
+                    try:
+                        image_stream = BytesIO(image_bytes)
+                        gemini_image = Image.open(image_stream)
+                        gemini_images.append(gemini_image)
+                    except Exception:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"{uploaded_file.filename} no es una imagen válida"
+                        )
+
             response = self.client.models.generate_content_stream(
                 model=model,
-                contents=prompt,
+                contents=[prompt, *gemini_images],
                 config=self.config
             )
 
