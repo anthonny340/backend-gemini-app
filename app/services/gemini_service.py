@@ -57,7 +57,7 @@ class GeminiService:
                 detail=f"Unexpected error: {str(e)}"
             )
 
-    async def generate_content_stream(self, prompt: str, files: list[UploadFile] = [], model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
+    async def generate_content_stream(self, prompt: str, files: Optional[list[UploadFile]] = None, model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
         try:
             gemini_images = []
             if files:

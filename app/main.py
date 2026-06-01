@@ -87,7 +87,7 @@ async def basicPromptStream(
 @app.post('/api/basic-prompt-stream-images')
 async def basicPromptStreamImages(
     prompt: str = Form(...),
-    images: Annotated[list[UploadFile], File()] = []
+    images: Annotated[list[UploadFile] | None, File()] = None
 ):
     """
     Genera una respuesta de Gemini en streaming mediante Server-Sent Events.
@@ -113,6 +113,7 @@ async def basicPromptStreamImages(
             hasta que la respuesta finaliza o se produce un error.
     """
     gemini = GeminiService()
+    images = images or []
 
     async def event_generator():
         async for chunk in gemini.generate_content_stream(prompt=prompt, files=images):
