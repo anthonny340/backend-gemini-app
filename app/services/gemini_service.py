@@ -95,19 +95,26 @@ class GeminiService:
             )
 
         except exceptions.ResourceExhausted:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit / quota excedida")
-
+            yield GeminiStreamChunk(
+                success=False,
+                chunk="status.HTTP_429_TOO_MANY_REQUESTS - Rate limit / quota excedida",
+                done=True
+            )
         except exceptions.InvalidArgument:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Contenido inválido")
-
+            yield GeminiStreamChunk(
+                success=False,
+                chunk="status.HTTP_400_BAD_REQUEST - Contenido inválido",
+                done=True
+            )
         except exceptions.Unauthenticated:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication credentials were not provided")
-
+            yield GeminiStreamChunk(
+                success=False,
+                chunk="status.HTTP_401_UNAUTHORIZED - Authentication credentials were not provided",
+                done=True
+            )
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Unexpected error: {str(e)}"
+            yield GeminiStreamChunk(
+                success=False,
+                chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
+                done=True
             )
