@@ -10,6 +10,22 @@ class ChatMemory:
     def get_session(self, chat_id: str) -> Any | None:
         return self.sessions.get(chat_id)
 
+    def get_session_info(self, chat_id: str) -> dict[str, Any]:
+        session = self.get_session(chat_id)
+
+        if session is None:
+            return {
+                "exists": False,
+                "chat_id": chat_id,
+                "message": "No existe una sesión para este chat_id",
+            }
+
+        return {
+            "exists": True,
+            "chat_id": chat_id,
+            "session_type": type(session).__name__,
+        }
+
     def get_or_create_session(self, chat_id: str, session_factory) -> Any:
         if chat_id not in self.sessions:
             self.sessions[chat_id] = session_factory()

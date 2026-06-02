@@ -2,9 +2,10 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile, Path
 from fastapi.responses import StreamingResponse
 
+from app.storage.chat_memory import chat_session
 from app.api.v1.gemini.schemas import BasicPrompt
 from app.services.gemini_service import GeminiService
 load_dotenv()
@@ -145,3 +146,8 @@ async def generarUuid():
     return {
         "chat_id": chat_id
     }
+
+
+@app.get("/chat/{uuid}")
+async def obtenerSesion(uuid: str = Path(..., title='UUID del Chat')):
+    return chat_session.get_session_info(uuid)
