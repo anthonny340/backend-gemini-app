@@ -148,6 +148,11 @@ async def generarUuid():
     }
 
 
-@app.get("/chat/{uuid}")
-async def obtenerSesion(uuid: str = Path(..., title='UUID del Chat')):
+@app.get("/chat")
+async def obtenerSesion(uuid: str = Form(..., description="UUID del Chat")):
     return chat_session.get_session_info(uuid)
+
+
+@app.get("/chat/messages")
+async def obtenerMessagesSesion(uuid: str = Form(..., description="UUID del Chat")):
+    return chat_session.get_messages(uuid)

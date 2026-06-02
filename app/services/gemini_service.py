@@ -134,16 +134,25 @@ class GeminiService:
                 [prompt, *gemini_images]
             )
 
+            chat_session.add_message(chat_id=str(
+                chatId), role="User", content=prompt)
+
+            full_text_response = ""
+
             for chunk in response:
                 text = getattr(chunk, "text", None)
 
                 if text:
+                    full_text_response += text
 
                     yield GeminiStreamChunk(
                         success=True,
                         chunk=text,
                         done=False
                     )
+
+            chat_session.add_message(chat_id=str(
+                chatId), role="Gemini", content=full_text_response)
 
             yield GeminiStreamChunk(
                 success=True,
