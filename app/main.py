@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, UploadFile
@@ -120,3 +121,27 @@ async def basicPromptStreamImages(
             yield f"data:{chunk.model_dump_json()}\n\n"
 
     return StreamingResponse(content=event_generator(), media_type="text/event-stream")
+
+
+@app.post('/api/chat-stream')
+async def chatStream(
+        chatId: UUID = Form(...),
+        prompt: str = Form(...),
+        images: Annotated[list[UploadFile], File()] = [],
+):
+    gemini = GeminiService()
+
+    async def event_generator():
+        async for chunk in gemini.generate_chat_content_stream(chatId=chatId, prompt=prompt, files=images):
+            yield f"data:{chunk.model_dump_json()}\n\n"
+
+    return StreamingResponse(content=event_generator(), media_type="text/event-stream")
+
+
+@app.get("/generar-uuid")
+async def generarUuid():
+    chat_id = uuid4()
+
+    return {
+        "chat_id": chat_id
+    }
