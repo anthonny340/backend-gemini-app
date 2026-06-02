@@ -13,6 +13,7 @@ from google.api_core import exceptions
 from collections.abc import AsyncGenerator
 from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse, GeminiStreamChunk
 from app.storage.chat_memory import chat_session
+from app.utils.file_utils import upload_files
 
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -65,17 +66,8 @@ class GeminiService:
         try:
             gemini_images = []
             if files:
-                for uploaded_file in files:
-                    image_bytes = await uploaded_file.read()
-                    try:
-                        image_stream = BytesIO(image_bytes)
-                        gemini_image = Image.open(image_stream)
-                        gemini_images.append(gemini_image)
-                    except Exception:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"{uploaded_file.filename} no es una imagen válida"
-                        )
+                gemini_images = await upload_files(
+                    gemini_client=gemini_client, files=files)
 
             response = self.client.models.generate_content_stream(
                 model=model,
@@ -127,18 +119,8 @@ class GeminiService:
         try:
             gemini_images = []
             if files:
-                for uploaded_file in files:
-                    image_bytes = await uploaded_file.read()
-                    try:
-                        image_stream = BytesIO(image_bytes)
-                        gemini_image = Image.open(image_stream)
-                        print(uploaded_file.content_type)
-                        gemini_images.append(gemini_image)
-                    except Exception:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"{uploaded_file.filename} no es una imagen válida"
-                        )
+                gemini_images = await upload_files(
+                    gemini_client=gemini_client, files=files)
 
             chat = chat_session.get_or_create_session(
                 chat_id=str(chatId),
