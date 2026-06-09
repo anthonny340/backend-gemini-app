@@ -1,5 +1,6 @@
 
 
+import base64
 from io import BytesIO
 import os
 from typing import Optional
@@ -182,3 +183,38 @@ class GeminiService:
                 chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
                 done=True
             )
+
+    async def generate_image(self, prompt: str, files: Optional[list[UploadFile]] = None):
+        try:
+            gemini_images = []
+            if files:
+                gemini_images = await upload_files(
+                    gemini_client=gemini_client, files=files)
+
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash-image-preview",
+                contents=[prompt, *gemini_images],
+            )
+            candidates = response.candidates or []
+
+            for candidate in candidates:
+                content = candidate.content
+                if content is None or content.parts is None:
+                    continue
+
+                for part in content.parts:
+                    inline_data = part.inline_data
+                    if inline_data is None or inline_data.data is None:
+                        continue
+
+                    image_base64 = base64.b64encode(
+                        inline_data.data).decode("utf-8")
+
+                    return {
+                        "mime_type": inline_data.mime_type,
+                        "image_base64": image_base64,
+                    }
+            return {"error": "No se generó ninguna imagen"}
+        except Exception as e:
+            print(
+                f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}")

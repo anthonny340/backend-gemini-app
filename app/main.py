@@ -156,3 +156,12 @@ async def obtenerSesion(uuid: str = Form(..., description="UUID del Chat")):
 @app.get("/api/chat/messages")
 async def obtenerMessagesSesion(uuid: str = Form(..., description="UUID del Chat")):
     return chat_session.get_messages(uuid)
+
+
+@app.post("/api/generate-image")
+def generate_image(prompt: str = Form(...),
+                   images: Annotated[list[UploadFile] | None, File()] = None,):
+
+    gemini = GeminiService()
+
+    return gemini.generate_image(prompt=prompt, files=images)
