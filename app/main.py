@@ -128,7 +128,7 @@ async def basicPromptStreamImages(
 async def chatStream(
         chatId: UUID = Form(...),
         prompt: str = Form(...),
-        images: Annotated[list[UploadFile], File()] = [],
+        images: Annotated[list[UploadFile] | None, File()] = None,
 ):
     gemini = GeminiService()
 
@@ -139,7 +139,7 @@ async def chatStream(
     return StreamingResponse(content=event_generator(), media_type="text/event-stream")
 
 
-@app.get("/generar-uuid")
+@app.get("/api/generar-uuid")
 async def generarUuid():
     chat_id = uuid4()
 
@@ -148,11 +148,11 @@ async def generarUuid():
     }
 
 
-@app.get("/chat")
+@app.get("/api/chat")
 async def obtenerSesion(uuid: str = Form(..., description="UUID del Chat")):
     return chat_session.get_session_info(uuid)
 
 
-@app.get("/chat/messages")
+@app.get("/api/chat/messages")
 async def obtenerMessagesSesion(uuid: str = Form(..., description="UUID del Chat")):
     return chat_session.get_messages(uuid)
