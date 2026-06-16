@@ -168,6 +168,7 @@ class GeminiService:
         except exceptions.ResourceExhausted:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_429_TOO_MANY_REQUESTS - Rate limit / quota excedida",
                 done=True
             )
@@ -193,7 +194,85 @@ class GeminiService:
                 done=True
             )
 
-    async def generate_image(self, prompt: str, files: Optional[list[UploadFile]] = None):
+    async def generate_chat_image_stream(self, chatId: UUID, prompt: str, files: Optional[list[UploadFile]] = None, model: str = "gemini-3.5-flash") -> AsyncGenerator[GeminiStreamChunk, None]:
+        try:
+            gemini_images = []
+            if files:
+                gemini_images = await upload_files(
+                    gemini_client=gemini_client, files=files)
+
+            chat = chat_session.get_or_create_session(
+                chat_id=str(chatId),
+                session_factory=lambda: self.client.chats.create(
+                    model=model,
+                    config=self.config,
+                ),
+            )
+
+            response = chat.send_message_stream(
+                [prompt, *gemini_images]
+            )
+
+            chat_session.add_message(chat_id=str(
+                chatId), role="User", content=prompt)
+
+            full_text_response = ""
+
+            for chunk in response:
+                text = getattr(chunk, "text", None)
+
+                if text:
+                    full_text_response += text
+
+                    yield GeminiStreamChunk(
+                        success=True,
+                        type="text",
+                        chunk=text,
+                        done=False
+                    )
+
+            image_response = await self.generate_image(prompt=prompt, files=files)
+
+            yield image_response
+
+            chat_session.add_message(chat_id=str(
+                chatId), role="Gemini", content=full_text_response)
+
+            yield GeminiStreamChunk(
+                success=True,
+                done=True
+            )
+
+        except exceptions.ResourceExhausted:
+            yield GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk="status.HTTP_429_TOO_MANY_REQUESTS - Rate limit / quota excedida",
+                done=True
+            )
+        except exceptions.InvalidArgument:
+            yield GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk="status.HTTP_400_BAD_REQUEST - Contenido inválido",
+                done=True
+            )
+        except exceptions.Unauthenticated:
+            yield GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk="status.HTTP_401_UNAUTHORIZED - Authentication credentials were not provided",
+                done=True
+            )
+        except Exception as e:
+            yield GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
+                done=True
+            )
+
+    async def generate_image(self, prompt: str, files: Optional[list[UploadFile]] = None) -> GeminiStreamChunk:
         try:
             gemini_images = []
             if files:
@@ -201,7 +280,7 @@ class GeminiService:
                     gemini_client=gemini_client, files=files)
 
             response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash-image-preview",
+                model="gemini-2.5-flash-image",
                 contents=[prompt, *gemini_images],
             )
             candidates = response.candidates or []
@@ -219,11 +298,23 @@ class GeminiService:
                     image_base64 = base64.b64encode(
                         inline_data.data).decode("utf-8")
 
-                    return {
-                        "mime_type": inline_data.mime_type,
-                        "image_base64": image_base64,
-                    }
-            return {"error": "No se generó ninguna imagen"}
+                    return GeminiStreamChunk(
+                        success=True,
+                        type="image",
+                        mime_type=inline_data.mime_type,
+                        chunk=image_base64,
+                        done=False,
+                    )
+            return GeminiStreamChunk(
+                success=False,
+                type="image",
+                chunk="No genero la imagen",
+                done=False,
+            )
         except Exception as e:
-            print(
-                f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}")
+            return GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
+                done=True
+            )
