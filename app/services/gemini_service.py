@@ -82,6 +82,7 @@ class GeminiService:
                 if text:
                     yield GeminiStreamChunk(
                         success=True,
+                        type="text",
                         chunk=text,
                         done=False
                     )
@@ -94,24 +95,28 @@ class GeminiService:
         except exceptions.ResourceExhausted:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_429_TOO_MANY_REQUESTS - Rate limit / quota excedida",
                 done=True
             )
         except exceptions.InvalidArgument:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_400_BAD_REQUEST - Contenido inválido",
                 done=True
             )
         except exceptions.Unauthenticated:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_401_UNAUTHORIZED - Authentication credentials were not provided",
                 done=True
             )
         except Exception as e:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
                 done=True
             )
@@ -148,6 +153,7 @@ class GeminiService:
 
                     yield GeminiStreamChunk(
                         success=True,
+                        type="text",
                         chunk=text,
                         done=False
                     )
@@ -168,18 +174,21 @@ class GeminiService:
         except exceptions.InvalidArgument:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_400_BAD_REQUEST - Contenido inválido",
                 done=True
             )
         except exceptions.Unauthenticated:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk="status.HTTP_401_UNAUTHORIZED - Authentication credentials were not provided",
                 done=True
             )
         except Exception as e:
             yield GeminiStreamChunk(
                 success=False,
+                type="error",
                 chunk=f"status.HTTP_500_INTERNAL_SERVER_ERROR - Unexpected error: {str(e)}",
                 done=True
             )
