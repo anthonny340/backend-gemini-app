@@ -34,3 +34,6 @@ Thumbs.db
 
 # Poetry (NO ignorar pyproject.toml ni poetry.lock)
 .db
+
+# Ignorar las imagenes de la carpeta uploads/images
+/uploads/images/*.png

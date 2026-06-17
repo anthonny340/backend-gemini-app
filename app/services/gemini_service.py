@@ -13,7 +13,7 @@ from google.api_core import exceptions
 from collections.abc import AsyncGenerator
 from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse, GeminiStreamChunk
 from app.storage.chat_memory import chat_session
-from app.utils.file_utils import upload_files
+from app.utils.file_utils import prepare_images_for_gemini, upload_files
 from pathlib import Path
 
 load_dotenv()
@@ -209,7 +209,7 @@ class GeminiService:
         try:
             gemini_images = []
             if files:
-                gemini_images = await upload_files(
+                gemini_images = await prepare_images_for_gemini(
                     gemini_client=gemini_client, files=files)
 
             chat = chat_session.get_or_create_session(
@@ -242,7 +242,7 @@ class GeminiService:
                         done=False
                     )
 
-            image_response = await self.generate_image(prompt=prompt, files=files)
+            image_response = await self.generate_image(prompt=prompt, gemini_images=gemini_images)
 
             yield image_response
 
@@ -283,12 +283,10 @@ class GeminiService:
                 done=True
             )
 
-    async def generate_image(self, prompt: str, files: Optional[list[UploadFile]] = None) -> GeminiStreamChunk:
+    async def generate_image(self, prompt: str, gemini_images: Optional[list] = None) -> GeminiStreamChunk:
         try:
-            gemini_images = []
-            if files:
-                gemini_images = await upload_files(
-                    gemini_client=gemini_client, files=files)
+            if gemini_images is None:
+                gemini_images = []
 
             response = gemini_client.models.generate_content(
                 model="gemini-2.5-flash-image",
@@ -339,6 +337,13 @@ class GeminiService:
                 type="image",
                 chunk="No genero la imagen",
                 done=False,
+            )
+        except HTTPException as http_exc:
+            return GeminiStreamChunk(
+                success=False,
+                type="error",
+                chunk=f"status.HTTP_{http_exc.status_code} - {http_exc.detail}",
+                done=True
             )
         except Exception as e:
             return GeminiStreamChunk(
