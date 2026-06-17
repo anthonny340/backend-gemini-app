@@ -8,9 +8,17 @@ from fastapi.responses import StreamingResponse
 from app.storage.chat_memory import chat_session
 from app.api.v1.gemini.schemas import BasicPrompt
 from app.services.gemini_service import GeminiService
+from fastapi.staticfiles import StaticFiles
+
 load_dotenv()
 
 app = FastAPI(title='Backend Gemini')
+
+app.mount(
+    "/static",
+    StaticFiles(directory="uploads"),
+    name="static",
+)
 
 
 @app.get('/')

@@ -1,10 +1,9 @@
 
 
-import base64
-from io import BytesIO
 import os
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
+from dotenv import load_dotenv
 
 from fastapi import HTTPException, UploadFile, status
 from google import genai
@@ -15,6 +14,18 @@ from collections.abc import AsyncGenerator
 from app.api.v1.gemini.schemas import GeminiGenerateContentConfig, GeminiResponse, GeminiStreamChunk
 from app.storage.chat_memory import chat_session
 from app.utils.file_utils import upload_files
+from pathlib import Path
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+UPLOAD_DIR = BASE_DIR / "uploads" / "images"
+ALLOWED_IMAGE_TYPES = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+}
 
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -295,14 +306,32 @@ class GeminiService:
                     if inline_data is None or inline_data.data is None:
                         continue
 
-                    image_base64 = base64.b64encode(
-                        inline_data.data).decode("utf-8")
+                    # Controlando el tipo de imagen
+                    mime_type = inline_data.mime_type
+                    mime_type = mime_type or 'No support'
+                    extension = ALLOWED_IMAGE_TYPES.get(
+                        mime_type.lower())
+
+                    if extension is None:
+                        return GeminiStreamChunk(
+                            success=False,
+                            type="error",
+                            chunk=f"Tipo de imagen no soportado: {mime_type}",
+                            done=True,
+                        )
+
+                    filename = f"{uuid4()}.{extension}"
+                    file_path = UPLOAD_DIR / filename
+                    with open(file_path, "wb") as file:
+                        file.write(inline_data.data)
+
+                    image_url = f"{os.getenv("API_URL")}/static/images/{filename}"
 
                     return GeminiStreamChunk(
                         success=True,
                         type="image",
                         mime_type=inline_data.mime_type,
-                        chunk=image_base64,
+                        chunk=image_url,
                         done=False,
                     )
             return GeminiStreamChunk(
