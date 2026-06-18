@@ -166,10 +166,10 @@ async def obtenerMessagesSesion(uuid: str = Form(..., description="UUID del Chat
     return chat_session.get_messages(uuid)
 
 
-@app.post("/api/generate-image")
-async def generate_image(chatId: UUID = Form(...),
-                         prompt: str = Form(...),
-                         images: Annotated[list[UploadFile] | None, File()] = None,):
+@app.post("/api/chat-generate-image")
+async def chat_generate_image(chatId: UUID = Form(...),
+                              prompt: str = Form(...),
+                              images: Annotated[list[UploadFile] | None, File()] = None,):
 
     gemini = GeminiService()
 
@@ -178,3 +178,12 @@ async def generate_image(chatId: UUID = Form(...),
             yield f"data:{chunk.model_dump_json(exclude_none=True)}\n\n"
 
     return StreamingResponse(content=event_generator(), media_type="text/event-stream")
+
+
+@app.post("/api/generate-image")
+async def generate_image(prompt: str = Form(...),
+                         images: Annotated[list[UploadFile] | None, File()] = None,):
+
+    gemini = GeminiService()
+
+    return await gemini.generate_image(prompt=prompt, gemini_images=images)
