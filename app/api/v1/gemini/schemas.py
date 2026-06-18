@@ -43,8 +43,8 @@ class GeminiResponse(BaseModel):
 
 
 class GeminiStreamChunk(BaseModel):
-    success: bool
-    type: Optional[str] = None
-    mime_type: Optional[str] = None
-    chunk: Optional[str] = None
+    success: bool = False
+    type: Optional[str] = 'text'
+    mime_type: Optional[str] = ''
+    chunk: Optional[str] = ''
     done: bool = False

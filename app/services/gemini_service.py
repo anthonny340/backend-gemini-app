@@ -100,6 +100,7 @@ class GeminiService:
 
             yield GeminiStreamChunk(
                 success=True,
+                type='end',
                 done=True
             )
 
@@ -174,6 +175,7 @@ class GeminiService:
 
             yield GeminiStreamChunk(
                 success=True,
+                type='end',
                 done=True
             )
         except exceptions.ResourceExhausted:
@@ -251,6 +253,7 @@ class GeminiService:
 
             yield GeminiStreamChunk(
                 success=True,
+                type='end',
                 done=True
             )
 
@@ -287,6 +290,9 @@ class GeminiService:
         try:
             if gemini_images is None:
                 gemini_images = []
+            else:
+                gemini_images = await prepare_images_for_gemini(
+                    gemini_client=gemini_client, files=gemini_images)
 
             response = gemini_client.models.generate_content(
                 model="gemini-2.5-flash-image",
@@ -334,7 +340,7 @@ class GeminiService:
                     )
             return GeminiStreamChunk(
                 success=False,
-                type="image",
+                type="error",
                 chunk="No genero la imagen",
                 done=False,
             )
